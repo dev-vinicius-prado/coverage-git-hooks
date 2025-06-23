@@ -42,4 +42,18 @@ public class BankAccount {
     this.withdraw(amount);
     target.deposit(amount);
   }
+
+  public void pix(BankAccount targer, double amount) {
+    if (targer == null) {
+      throw new IllegalArgumentException("Target account cannot be null");
+    }
+    if (amount <= 0) {
+      throw new IllegalArgumentException("Amount must be positive");
+    }
+    if (!canAfford(amount)) {
+      throw new IllegalArgumentException("Insufficient funds for PIX transfer");
+    }
+    this.withdraw(amount);
+    targer.deposit(amount);
+  }
 }
