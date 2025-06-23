@@ -12,8 +12,7 @@ echo "============================================================"
 # Função para extrair a cobertura do relatório JaCoCo
 get_coverage() {
   if [ -f "target/site/jacoco/index.html" ]; then
-    grep -A1 '<td>Total</td>' target/site/jacoco/index.html | \
-    grep -o '[0-9]\+%' | head -1 | tr -d '%'
+    grep -A1 '<td>Total</td>' target/site/jacoco/index.html | grep -o '[0-9]\+%' | head -1 | tr -d '%'
   else
     echo 0
   fi
