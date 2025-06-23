@@ -19,7 +19,7 @@ if [ "$CURRENT_BRANCH" = "develop" ]; then
 
     if [ $? -eq 0 ]; then
         # Extraí cobertura
-        NEW_COVERAGE=$(grep -o "Total.*[0-9]\+%" target/site/jacoco/index.html | grep -o "[0-9]\+" | head -1)
+        NEW_COVERAGE=$( grep -A1 '<td>Total</td>' target/site/jacoco/index.html | grep -o '[0-9]\+%' | head -1 | tr -d '%')
 
         # Verifica se hava baseline anterior
         if [ -f ".coverage-baseline" ]; then

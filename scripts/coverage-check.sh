@@ -7,9 +7,10 @@ echo "============================================================"
 get_coverage() {
   mvn clean test jacoco:report -q > /dev/null 2>&1
   if [ -f "target/site/jacoco/index.html" ]; then
-      grep -o "Total.*[0-9]\+\.[0-9]\+%" target/site/jacoco/index.html | grep -o "[0-9]\+\%" | head -1
+      grep -A1 '<td>Total</td>' target/site/jacoco/index.html | \
+         grep -o '[0-9]\+%' | head -1 | tr -d '%'
   else
-      echo "0%"
+      echo 0
   fi
 }
 
@@ -24,19 +25,19 @@ get_branch_coverage() {
   # Faz checkout na branch
   git checkout $branch > /dev/null 2>&1
 
+  local coverage=0
   if [ $? -eq 0 ]; then
-      local coverage=$(get_coverage)
-      echo ":bar_chart: Cobertura da branch $branch: $coverage"
+      coverage=$(get_coverage)
+      echo ":bar_chart: Cobertura da branch $branch: ${coverage}%"
       else
       echo ":x: Falha ao fazer checkout na branch $branch. Verifique se ela existe."
-      coverage=0
   fi
 
   # Volta ao estado anterior
   git checkout - > /dev/null 2>&1
-  git stash pop > /dev/null 2>&1
-
-  echo $coverage
+  # Só faz pop se houver stash
+  git stash list | grep -q "temp-coverage-check" && git stash pop > /dev/null 2>&1
+  echo "Cobertura obtida: ${coverage}%"
 }
 
 # Informação gerais
@@ -76,7 +77,7 @@ if git rev-parse --verify develop > /dev/null 2>&1; then
     elif [ $DIFF -eq 0 ]; then
         echo " :warning: A cobertura atual foi mantida."
     else
-        echo " :x: A cobertura atual diminuiu em ${DIFF}% em relação à branch develop."
+        echo " :x: A cobertura atual diminuiu em $((-DIFF))% em relação à branch develop."
     fi
 fi
 
