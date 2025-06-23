@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# :dart: COMMIT-MSG HOOK: Valida mensagem de um commit
+# Objetivo: Garantir que a mensagem do commit siga o padrão estabelecido
+
+COMMIT_MSG_FILE=$1
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+echo ""
+echo ":memo: COMMIT-MSG HOOK: Validando mensagem do commit..."
+echo "======================================================="
+
+# Verifica se a mensagem do commit não está vazia
+if [ -z "$COMMIT_MSG" ]; then
+    echo ":x: Mensagem de commit não pode estar vazia!"
+    exit 1
+fi
+
+# Verifica se a mensagem começa com um tipo válido
+if ! echo "$COMMIT_MSG" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|chore|ci)'; then
+    echo ":x: Mensagem de commit deve começar com um tipo válido (feat, fix, docs, style, refactor, perf, test, chore, ci)."
+    echo "Exemplo: feat: Adiciona nova funcionalidade X"
+    exit 1
+fi
+
+# Verifica se a mensagem 'IGNORA' os testes
+if echo "$COMMIT_MSG" | grep -qE '^\[skip tests\]'; then
+    echo ":warning: Commit marcado como [skip tests]. Certifique-se de que é realmente necessário."
+    exit 0
+fi
+
+echo ":white_check_mark: Mensagem de commit válida."
+echo ":rocket: Commit pronto para ser enviado!"
+echo "============================================="

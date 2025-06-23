@@ -1,0 +1,69 @@
+#!/bin/bash
+
+# :checkered_flag: POST-MERGE HOOK: Executa DEPOIS de um merge bem-sucedido
+# Objetivo: Atualizar baseline quando um merge é feito na develop
+
+echo "Executando o hook post-merge..."
+echo ":arrows_counterclockwise: POST-MERGE: Verificando se deve atualizar o baseline..."
+echo "================================================================================="
+
+# Verfica se o branch atual é 'develop'
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$CURRENT_BRANCH" = "develop" ]; then
+    echo ":round_pushpin: Merge realizado na branch 'develop'."
+    echo ":arrows_counterclockwise: Atualizando o baseline..."
+
+    # Excuta testes e obtém nova cobertura
+    mvn clean test jacoco:report -q
+
+    if [ $? -eq 0 ]; then
+        # Extraí cobertura
+        NEW_COVERAGE=$(grep -o "Total.*[0-9]\+%" target/site/jacoco/index.html | grep -o "[0-9]\+" | head -1)
+
+        # Verifica se hava baseline anterior
+        if [ -f ".coverage-baseline" ]; then
+            OLD_COVERAGE=$(cat .coverage-baseline)
+            echo ":chart_with_upwards_trend: Baseline anterior: ${OLD_COVERAGE}%"
+        else
+            OLD_COVERAGE=0
+            echo ":memo: Nenhum baseline anterior encontrado. Criando novo baseline."
+        fi
+
+        # Atualiza a baseline
+        echo " ${NEW_COVERAGE}" > .coverage-baseline
+        echo ":beginner: Nova baseline: ${NEW_COVERAGE}%"
+
+        # Calcula evolução da cobertura
+        EVOLUTION=$((NEW_COVERAGE - OLD_COVERAGE))
+
+        if [ $EVOLUTION -gt 0 ]; then
+            echo ":rocket: Evolução da cobertura positiva: +${EVOLUTION}%"
+        elif [ $EVOLUTION -lt 0 ]; then
+            echo ":warning: Cobertura diminuiu em ${EVOLUTION}%"
+        else
+            echo ":white_check_mark: Cobertura permanece a mesma."
+        fi
+
+        # Gera relatório resumido
+             echo ""
+             echo ":memo: RESUMO DO MERGE:"
+             echo "     Branch: ${CURRENT_BRANCH}"
+             echo "     Cobertura: ${NEW_COVERAGE}%"
+             echo "     Evolução: ${EVOLUTION}%"
+             echo "     Data: $(date)"
+             echo ""
+             echo " :bulb: Dicas: "
+             echo "  - Adicione testes para o código novo ou modificado;"
+             echo "  - Execute: ./scritpst/coverage.sh para verificar a cobertura localmente;"
+             echo "  - Veja quais arquivos estão sem cobertura;"
+             echo ""
+
+        else
+        echo ":x: Falha ao executar os testes. Baseline não atualizado!"
+    fi
+else
+    echo ":round_pushpin: Merge na branch: ${CURRENT_BRANCH} (Baseline não atualizado)."
+fi
+echo ":heavy_check_mark: Cobertura verificada com sucesso!"
+echo "================================================================================="

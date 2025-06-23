@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# PRE-PUSH HOOK: Executa ANTES de um push
+# Objetivo: Verificação final antes de permitir o push
+
+echo ""
+echo ":rocket: PRE-PUSH HOOK: Verificando se o push pode ser realizado..."
+echo "==================================================================="
+
+# Lê informações antes do push
+while read local_ref local_sha remote_ref remote_sha; do
+  if [ "$local_sha" !=  "0000000000000000000000000000000000000000" ]; then
+      # Obtém a branch que está sendo enviada
+      BRANCH=$(echo $remote_ref | sed 's/refs\/heads\///')
+      echo ":pushpin: Branch sendo enviada: $BRANCH"
+
+      # Verifica se é uma branch de desenvolvimento (feature/, bugfix/, hotfix/, etc.)
+      if [[ $BRANCH == feature/* || $BRANCH == bugfix/* || $BRANCH == hotfix/* ]]; then
+          echo ":passport_control: Branch de desenvolvimento detectada: $BRANCH"
+
+          #Executa os testes
+          echo ":test_tube: Executando testes antes do push..."
+          mvn clean test -q
+
+          if [ $? -ne 0 ]; then
+              echo ":x: Testes falharam! Corrija os erros antes de continuar."
+              exit 1
+          fi
+
+          #Verifica a cobertura de código
+          echo ":bar_chart: Verificando cobertura de código..."
+          mvn jacoco:report -q
+          COVERAGE=$(grep -o "Total.*[0-9]\+%" target/site/jacoco/index.html | grep -o "[0-9]\+" | head -1)
+
+          echo ":clipboard: Cobertura da branch ${BRANCH}: ${COVERAGE}%"
+
+          # Políica de cobertura mínima para branches de desenvolvimento
+          if [ $COVERAGE -lt 70 ]; then
+              echo ":x: PUSH REJEITADO!"
+              echo ":warning: Cobertura de código abaixo do mínimo exigido (70%)."
+              echo ":no_entry_sign: Por favor, adicione mais testes."
+              exit 1
+          fi
+          echo ":white_check_mark: Cobertura de código adequada. Push permitido."
+
+          elif [ "$BRANCH" = "develop" ]; then
+              echo ":passport_control: Branch develop detectada: $BRANCH"
+
+              # Testes básicos na branch develop
+              mvn clean test -q
+              if [ $? -ne 0  ]; then
+                  echo ":x: Testes falharam na branch develop! Corrija os erros antes de continuar."
+                  exit 1
+              fi
+
+              echo ":checkered_flag: Branch develop está pronta para o push."
+      else
+        echo ":pencil: Branch ${BRANCH} - Verificação básica"
+      fi
+  fi
+done
+
+echo ":white_check_mark: Todas as verificações concluídas. Push permitido."
+echo "===================================================================="
+
+
+
+
+
+
+
+
+
+
+
+

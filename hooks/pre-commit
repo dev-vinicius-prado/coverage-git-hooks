@@ -1,0 +1,76 @@
+#!/bin/bash
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+# :checkered_flag: PRE-COMMIT HOOK: Executa ANTES do commit ser criado.
+# Objetivo: Verificar se a cobertura não diminuiu drásticamente.
+
+echo ""
+echo ":warning: PRE-COMMIT HOOK: Verificando cobertura de código..."
+echo "============================================================"
+
+# Função para extrair a cobertura do relatório JaCoCo
+get_coverage() {
+  if [ -f "target/site/jacoco/index.html" ]; then
+    grep -A1 '<td>Total</td>' target/site/jacoco/index.html | \
+    grep -o '[0-9]\+%' | head -1 | tr -d '%'
+  else
+    echo 0
+  fi
+}
+# Executa testes e gera o relatório JaCoCo
+echo ":bar_chart: Executando testes e gerando relatório JaCoCo..."
+mvn clean test jacoco:report -q
+
+if [ $? -ne 0 ]; then
+  echo ":x: Testes falharam. Abortando commit."
+  echo " Corrija os testes antes de fazer o commit."
+  exit 1
+fi
+
+# Obtém a cobertura atual
+CURRENT_COVERAGE=$(get_coverage)
+echo ":chart_with_upwards_trend: Cobertura atual: ${CURRENT_COVERAGE}%"
+
+# Verifica se existe baseline
+if [ -f ".coverage-baseline" ]; then
+  BASELINE_COVERAGE=$(cat .coverage-baseline)
+  echo ":bar_chart: Cobertura baseline: ${BASELINE_COVERAGE}%"
+  echo "============================================================"
+  echo " ${CURRENT_COVERAGE}% (atual) vs ${BASELINE_COVERAGE}% (baseline)"
+  # Calcula a diferença
+  DIFF=$((CURRENT_COVERAGE - BASELINE_COVERAGE))
+  echo ":balance_scale: Diferença em relação à baseline: ${DIFF}%"
+
+  if [ $DIFF -gt 0 ]; then
+    echo ":partying_face: Cobertura melhorou em ${DIFF}%! Parabéns!"
+    elif  [ $DIFF -eq 0 ]; then
+      echo ":neutral_face: Cobertura não mudou. Continue assim!"
+      echo "${CURRENT_COVERAGE}" > .coverage-baseline
+      else
+        echo ":warning: Cobertura diminuiu em ${DIFF#-}%!"
+        echo " Por favor, melhore a cobertura antes de fazer o commit."
+
+        # Política: Não permite que a queda de cobertura seja maior que 3%
+        if [ $DIFF -le -3 ]; then
+          echo ":x: COMMIT REJEITADO!"
+          echo " Queda de cobertura muito alta (${DIFF#-}%)."
+          echo " Máximo permitido: 3%."
+          echo ""
+          echo " :bulb: Dicas: "
+          echo "  - Adicione testes para o código novo ou modificado;"
+          echo "  - Execute: ./scripts/coverage.sh para verificar a cobertura localmente;"
+          echo "  - Veja quais arquivos estão sem cobertura;"
+          exit 1
+        else
+          echo ":thumbsup: Commit permitido, mas considere melhorar a cobertura."
+        fi
+  fi
+else
+  # Primeira execução - cria a baseline
+  echo "${CURRENT_COVERAGE}" > .coverage-baseline
+  echo ":tada: Primeira execução! Cobertura baseline criada: ${CURRENT_COVERAGE}%"
+fi
+
+echo ":heavy_check_mark: Cobertura verificada com sucesso!"
+echo "============================================================"
