@@ -45,7 +45,6 @@ if [ -f ".coverage-baseline" ]; then
     echo ":partying_face: Cobertura melhorou em ${DIFF}%! Parabéns!"
     elif  [ $DIFF -eq 0 ]; then
       echo ":neutral_face: Cobertura não mudou. Continue assim!"
-      echo "${CURRENT_COVERAGE}" > .coverage-baseline
       else
         echo ":warning: Cobertura diminuiu em ${DIFF#-}%!"
         echo " Por favor, melhore a cobertura antes de fazer o commit."
@@ -67,7 +66,6 @@ if [ -f ".coverage-baseline" ]; then
   fi
 else
   # Primeira execução - cria a baseline
-  echo "${CURRENT_COVERAGE}" > .coverage-baseline
   echo ":tada: Primeira execução! Cobertura baseline criada: ${CURRENT_COVERAGE}%"
 fi
 

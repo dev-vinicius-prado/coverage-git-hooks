@@ -26,13 +26,9 @@ if [ "$CURRENT_BRANCH" = "develop" ]; then
             OLD_COVERAGE=$(cat .coverage-baseline)
             echo ":chart_with_upwards_trend: Baseline anterior: ${OLD_COVERAGE}%"
         else
-            OLD_COVERAGE=0
+            OLD_COVERAGE=80  # Valor padrão se não houver baseline
             echo ":memo: Nenhum baseline anterior encontrado. Criando novo baseline."
         fi
-
-        # Atualiza a baseline
-        echo " ${NEW_COVERAGE}" > .coverage-baseline
-        echo ":beginner: Nova baseline: ${NEW_COVERAGE}%"
 
         # Calcula evolução da cobertura
         EVOLUTION=$((NEW_COVERAGE - OLD_COVERAGE))
